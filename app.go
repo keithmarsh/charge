@@ -8,7 +8,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strconv"
 )
 
 //go:embed templates/*
@@ -54,12 +53,13 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 		log.Fatal(err)
 	}
 	for ix, line := range csv {
-		if ix > 0 {
-			t := line[1]
-			wh, _ := strconv.ParseFloat(line[25], 32)
-			if wh > 0.0 {
-				fmt.Fprintf(w, "%s %f", t, wh)
-			}
-		}
+		//if ix > 0 {
+		t := line[1]
+		wh := line[25]
+		//wh, _ := strconv.ParseFloat(line[25], 32)
+		//if wh > 0.0 {
+		fmt.Fprintf(w, "%d %s %s<br>\n", ix, t, wh)
+		//}
+		//}
 	}
 }
