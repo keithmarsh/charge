@@ -7,5 +7,14 @@
 {{ if .Region }}
 <h2>I'm running in the {{.Region}} region</h2>
 {{end}}
+    <form
+      id="form"
+      enctype="multipart/form-data"
+      action="/upload"
+      method="POST"
+    >
+      <input class="input file-input" type="file" name="file" multiple />
+      <button class="button" type="submit">Submit</button>
+    </form>
 </body>
 </html>
