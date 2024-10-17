@@ -3,10 +3,10 @@
 <head>
 </head>
 <body>
-<h1>Hello from Fly</h1>
-{{ if .Region }}
-<h2>I'm running in the {{.Region}} region</h2>
-{{end}}
+<h1>Hourly</h1>
+{{ range $step := . }}
+{{ $step.FromTime }} {{ $step.ValueIncVat }} <br>
+{{ end }}
     <form
       id="form"
       enctype="multipart/form-data"
