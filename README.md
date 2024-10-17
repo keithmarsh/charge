@@ -1,4 +1,4 @@
-# Octopuse Agile / Zappi Charging Costs
+# Octopus Agile / Zappi Charging Costs
 A very simple charge calculator for a Zappi on Octopus Agile tarrif.
 # Get Your Charge Data
 The only way to get your charge data now is to request a CSV to be delivered by email on https://myaccount.myenergi.com/data-reports
@@ -14,7 +14,7 @@ When you have your CSV, go here
 
     https://charge.fly.dev/
 
-and upload your CSB by selecting Choose Files and clicking on your CSV and pressing Submit
+and upload your CSV by selecting Choose Files and clicking on your CSV and pressing Submit
 
 You'll get a page showing your usage, average rate for the hour, and total, like this
 
