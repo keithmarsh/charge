@@ -54,6 +54,9 @@ func main() {
 const MAX_UPLOAD_SIZE = 16 * 1024 // 16K
 
 func indexHandler(w http.ResponseWriter, r *http.Request) {
+	//
+	// Get a page or two of octopus rates
+	//
 	url := "https://api.octopus.energy/v1/products/AGILE-FLEX-22-11-25/electricity-tariffs/E-1R-AGILE-FLEX-22-11-25-H/standard-unit-rates/"
 	var rates []Price
 	for i := 0; i < 2; i++ {
@@ -66,6 +69,9 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 		url = page.Next
 	}
 
+	//
+	// Convert the timestamp strings to Time and sort
+	//
 	layout := "2006-01-02T15:04:05Z"
 	var err error
 	for ix, p := range rates {
@@ -75,11 +81,12 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		rates[ix].ToTime, _ = time.Parse(layout, p.ValidTo)
 	}
-
 	sort.Slice(rates, func(i, j int) bool {
 		return rates[i].FromTime.Before(rates[j].FromTime)
 	})
-
+	//
+	// Average to hourly rates
+	//
 	var prev_p Price
 	HourlyRates = make([]Price, len(rates)/2)
 	h_ix := 0
@@ -95,12 +102,6 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		prev_p = p
 	}
-
-	log.Printf("Page %+v", HourlyRates)
-
-	// data := map[string]string{
-	// 	"Region": os.Getenv("FLY_REGION"),
-	// }
 
 	t.ExecuteTemplate(w, "index.html.tmpl", HourlyRates)
 }
@@ -144,7 +145,9 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	// Limit file upload size
+	//
+	// Get the multipart form into a file
+	//
 	r.Body = http.MaxBytesReader(w, r.Body, MAX_UPLOAD_SIZE)
 	// Parse the body into memory
 	if err := r.ParseMultipartForm(MAX_UPLOAD_SIZE); err != nil {
@@ -152,7 +155,6 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "The uploaded file is too big. Please choose an file that's less than 1MB in size", http.StatusBadRequest)
 		return
 	}
-	// Get the first file
 	mulFile, mulHdr, err := r.FormFile("file")
 	if err != nil {
 		errStr := fmt.Sprintf("Error reading the file %s\n", err)
@@ -160,6 +162,9 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, errStr, http.StatusInternalServerError)
 		return
 	}
+	//
+	// Read the CSV
+	//
 	log.Println("Filename", mulHdr.Filename)
 	csvRdr := csv.NewReader(mulFile)
 	csv, err := csvRdr.ReadAll()
@@ -172,9 +177,14 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 	sumKwh := 0.0
 	for ix, line := range csv {
 		if ix > 0 {
+			//
+			// For each line, get the time and power
+			//
 			t, _ := time.Parse(layout, line[1])
-			//wh := line[25]
 			wh, _ := strconv.ParseFloat(line[25], 32)
+			//
+			// For entries with a matching rate, show the rate and cost
+			//
 			if wh > 0.0 {
 				rate, err := findRate(HourlyRates, t)
 				if err != nil {
@@ -188,6 +198,9 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
+	//
+	// And show the totals
+	//
 	fmt.Fprintf(w, "Total £%.2f\n", sumCost)
 	fmt.Fprintf(w, "Power %.3f kWh\n", sumKwh/1000.0)
 }

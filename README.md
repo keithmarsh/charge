@@ -30,4 +30,4 @@ You'll get a page showing your usage, average rate for the hour, and total, like
     Total £10.47
     Power 60.852 kWh
 
-Because the power usage is only show hourly, but the Octopus rates are half hourly, the two rates in an hour are averages for this calculation.
+Because the power usage is only recorded hourly, but the Octopus rates are half hourly, the two rates in an hour are averages for this calculation.
