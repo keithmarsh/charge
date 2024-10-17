@@ -55,59 +55,35 @@ const MAX_UPLOAD_SIZE = 16 * 1024 // 16K
 
 func indexHandler(w http.ResponseWriter, r *http.Request) {
 	url := "https://api.octopus.energy/v1/products/AGILE-FLEX-22-11-25/electricity-tariffs/E-1R-AGILE-FLEX-22-11-25-H/standard-unit-rates/"
-	client := http.Client{Timeout: time.Second * 2}
-	req, err := http.NewRequest(http.MethodGet, url, nil)
-	if err != nil {
-		log.Println("Can't create HTTP Request", err)
-		http.Error(w, "Can't create request", http.StatusInternalServerError)
-		return
-	}
-	// To set env var in powershell
-	// $env:OCTOKEY='sk...............'
-	req.SetBasicAuth(os.Getenv("OCTOKEY"), "")
-	resp, err := client.Do(req)
-	if err != nil {
-		log.Println("Can't do HTTP Request", err)
-		http.Error(w, "Can't do request", http.StatusInternalServerError)
-		return
-	}
-	if resp.Body != nil {
-		defer resp.Body.Close()
-	}
-	if resp.StatusCode != http.StatusOK {
-		log.Println("HTTP Request wasn't 200 OK", err)
-		http.Error(w, "Octopus request wasn't 200 OK", http.StatusBadGateway)
-		return
-	}
-	resp.Body = http.MaxBytesReader(w, resp.Body, 1024*1024)
-	//body, err :=
-	dec := json.NewDecoder(resp.Body)
-
-	var page Page
-	err = dec.Decode(&page)
-	if err != nil {
-		log.Println("Can't decode JSON", err)
-		http.Error(w, "Can't decode JSON", http.StatusInternalServerError)
-		return
+	var rates []Price
+	for i := 0; i < 2; i++ {
+		page, err := fetchOctoPage(url)
+		if err != nil {
+			http.Error(w, "Could fetch Octopus rates", http.StatusBadGateway)
+			return
+		}
+		rates = append(rates, page.Results[:]...)
+		url = page.Next
 	}
 
 	layout := "2006-01-02T15:04:05Z"
-	for ix, p := range page.Results {
-		page.Results[ix].FromTime, err = time.Parse(layout, p.ValidFrom)
+	var err error
+	for ix, p := range rates {
+		rates[ix].FromTime, err = time.Parse(layout, p.ValidFrom)
 		if err != nil {
 			log.Println("Error parsing time", err)
 		}
-		page.Results[ix].ToTime, _ = time.Parse(layout, p.ValidTo)
+		rates[ix].ToTime, _ = time.Parse(layout, p.ValidTo)
 	}
 
-	sort.Slice(page.Results, func(i, j int) bool {
-		return page.Results[i].FromTime.Before(page.Results[j].FromTime)
+	sort.Slice(rates, func(i, j int) bool {
+		return rates[i].FromTime.Before(rates[j].FromTime)
 	})
 
 	var prev_p Price
-	HourlyRates = make([]Price, len(page.Results)/2)
+	HourlyRates = make([]Price, len(rates)/2)
 	h_ix := 0
-	for _, p := range page.Results {
+	for _, p := range rates {
 		if prev_p.ValueIncVat != 0.0 && prev_p.ToTime.Equal(p.FromTime) && prev_p.FromTime.Minute() == 0 {
 			hour := Price{
 				FromTime:    prev_p.FromTime,
@@ -127,6 +103,39 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 	// }
 
 	t.ExecuteTemplate(w, "index.html.tmpl", HourlyRates)
+}
+
+func fetchOctoPage(url string) (*Page, error) {
+	client := http.Client{Timeout: time.Second * 2}
+	req, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		log.Println("Can't create HTTP Request", err)
+		return nil, err
+	}
+	// To set env var in powershell
+	// $env:OCTOKEY='sk...............'
+	req.SetBasicAuth(os.Getenv("OCTOKEY"), "")
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Println("Can't do HTTP Request", err)
+		return nil, err
+	}
+	if resp.Body != nil {
+		defer resp.Body.Close()
+	}
+	if resp.StatusCode != http.StatusOK {
+		log.Println("HTTP Request wasn't 200 OK", err)
+		return nil, err
+	}
+	dec := json.NewDecoder(resp.Body)
+
+	var page Page
+	err = dec.Decode(&page)
+	if err != nil {
+		log.Println("Can't decode JSON", err)
+		return nil, err
+	}
+	return &page, nil
 }
 
 func uploadHandler(w http.ResponseWriter, r *http.Request) {

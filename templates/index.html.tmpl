@@ -3,10 +3,6 @@
 <head>
 </head>
 <body>
-<h1>Hourly</h1>
-{{ range $step := . }}
-{{ $step.FromTime }} {{ $step.ValueIncVat }} <br>
-{{ end }}
     <form
       id="form"
       enctype="multipart/form-data"
@@ -16,5 +12,9 @@
       <input class="input file-input" type="file" name="file" multiple />
       <button class="button" type="submit">Submit</button>
     </form>
+    <h1>Hourly Rates</h1>
+{{ range $step := . }}
+{{ $step.FromTime }} {{ printf "%.1fp" $step.ValueIncVat }} <br>
+{{ end }}
 </body>
 </html>
