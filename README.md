@@ -4,8 +4,8 @@ A very simple charge calculator for a Zappi on Octopus Agile tarrif.
 The only way to get your charge data now is to request a CSV to be delivered by email on https://myaccount.myenergi.com/data-reports
 
 1. Select your Zappi
-2. Tick the Select All ib the Choose Your Fields section
-3. Select the time that completely encompass your charge session
+2. Tick the Select All in the Choose Your Fields section
+3. Select the times that completely encompass your charge session
 4. Enter your email
 5. Press Send Email and wait
 6. When the email arrives, download the CSV
@@ -30,4 +30,4 @@ You'll get a page showing your usage, average rate for the hour, and total, like
     Total £10.47
     Power 60.852 kWh
 
-Because the power usage is only recorded hourly, but the Octopus rates are half hourly, the two rates in an hour are averages for this calculation.
+Because the power usage is only recorded hourly, but the Octopus rates are half hourly, the two rates in an hour are averaged for this calculation.
