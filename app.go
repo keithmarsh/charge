@@ -11,6 +11,7 @@ import (
 	"os"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -171,24 +172,46 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Fatal(err)
 	}
+	//
+	// Interprest the CSV type
+	//
+
 	layout := "2006-01-02T15:04:05.000Z"
 	log.Printf("%d lines", len(csv))
+	var tIx = 1
+	var whIx = 25
+	var whIx2 = 28
 	sumCost := 0.0
 	sumKwh := 0.0
 	for ix, line := range csv {
-		if ix > 0 {
+		if ix == 0 {
+			log.Printf("0 == '%s'", line[0])
+			//
+			// Identify the CSV type
+			//
+			if strings.EqualFold(line[0], "Timestamp") {
+				log.Println("0,1")
+				tIx = 0
+				whIx = 1
+			} else {
+				log.Printf("length %d wh %s wh2 %s", len(line), line[whIx], line[whIx2])
+			}
+		} else {
 			//
 			// For each line, get the time and power
 			//
-			t, _ := time.Parse(layout, line[1])
-			wh, _ := strconv.ParseFloat(line[25], 32)
+			log.Printf("ix %d t %s wh %s", ix, line[tIx], line[whIx])
+			t, _ := time.Parse(layout, line[tIx])
+			wh, _ := strconv.ParseFloat(line[whIx], 32)
+			wh2, _ := strconv.ParseFloat(line[whIx2], 32)
+			wh = max(wh, wh2)
 			//
 			// For entries with a matching rate, show the rate and cost
 			//
 			if wh > 0.0 {
 				rate, err := findRate(HourlyRates, t)
 				if err != nil {
-					fmt.Fprintf(w, "%v %.1f\n", t, wh)
+					fmt.Fprintf(w, "NO RATE for ix %d t %v %.1f\n", ix, t, wh)
 				} else {
 					total := wh * rate / 100000.0
 					fmt.Fprintf(w, "%v %.1fWh * %.2fp = £%.2f\n", t, wh, rate, total)
