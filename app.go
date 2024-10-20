@@ -173,26 +173,29 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 		log.Fatal(err)
 	}
 	//
-	// Interprest the CSV type
+	// Interprest the CSV type and set index positions and watt scale
 	//
-
 	layout := "2006-01-02T15:04:05.000Z"
 	log.Printf("%d lines", len(csv))
 	var tIx = 1
 	var whIx = 25
 	var whIx2 = 28
+	var wScale = 1.0
 	sumCost := 0.0
 	sumKwh := 0.0
 	for ix, line := range csv {
 		if ix == 0 {
-			log.Printf("0 == '%s'", line[0])
 			//
-			// Identify the CSV type
+			// Identify the CSV type - BEWARE byte order mark in char 0
 			//
-			if strings.EqualFold(line[0], "Timestamp") {
+			label0 := strings.Trim(line[0], "\uFEFF")
+			if strings.EqualFold(label0, "Timestamp") {
 				log.Println("0,1")
+				layout = "02/01/2006 15:04"
 				tIx = 0
 				whIx = 1
+				whIx2 = -1
+				wScale = 1000
 			} else {
 				log.Printf("length %d wh %s wh2 %s", len(line), line[whIx], line[whIx2])
 			}
@@ -203,8 +206,11 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 			log.Printf("ix %d t %s wh %s", ix, line[tIx], line[whIx])
 			t, _ := time.Parse(layout, line[tIx])
 			wh, _ := strconv.ParseFloat(line[whIx], 32)
-			wh2, _ := strconv.ParseFloat(line[whIx2], 32)
-			wh = max(wh, wh2)
+			if whIx2 > 0 {
+				wh2, _ := strconv.ParseFloat(line[whIx2], 32)
+				wh = max(wh, wh2)
+			}
+			wh = wh * wScale
 			//
 			// For entries with a matching rate, show the rate and cost
 			//
